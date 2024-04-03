@@ -74,7 +74,7 @@ fit_egpd <- function(data, fitting_method = "mle", init, declustering_duration=1
       if(init[c('kappa')] > 0.05  &
          init[c('sigma')] > 0.02  &
          init[c('kappa')] <= 3 &
-         init[c('xi')] < 0.25 &
+         init[c('xi')] < 0.4 &
          init[c('xi')] > 10^(-6) ){
 
         # for left censored data
