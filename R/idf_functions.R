@@ -439,8 +439,8 @@ local_fit_IDF_h_par  <- function(sample, fitting_method= "mle", left_censoring_v
 #' @param left_censoring_value a scalar or vector of \code{length(durations)} for the left censoring to be applied to data of each duration. If a scalar is given, it will be divided by \code{durations}
 #' @param init_time_step  a scalar, eg 1 or 2. The time step to start declustering the data. eg, for hourly data, if  \code{declustering =3} and  \code{init_time_step = 2}, then the 2nd timestep will be selected, and then a sequence is applied
 #' @param fitting_method either \code{"mle"} for maximum likelihood or \code{"pwm"} for probability weighted momoments. Defaults to \code{"mle"}
-#' @param use_mle_init logical, defaults  to \code{FALSE}, if yes, an iterative pairwise likelohoof fitting is done. See ...
-#' @param optim_algo the \code{optim} algorithm to use. defaults to \code{"Nelder-Mead" }
+#' @param use_mle_init logical, defaults  to \code{FALSE}, if yes, an iterative pairwise likelihood fitting is done, trying both \code{"Nelder-Mead" } and \code{"BFGS" } See ...
+#' @param optim_algo the \code{optim} algorithm to use when \code{use_mle_init = FALSE}. defaults to \code{"Nelder-Mead" }
 #'
 #' @details
 #'   to be added
@@ -640,39 +640,54 @@ fit_egpd_idf_data_driven <- function(station_data, durations, declustering_durat
   #                   n_cens = n_cens, durations = durations, censored = censored, control = list(maxit = 3000), hessian = FALSE,method="Nelder-Mead")
 
 
-  if (use_mle_init) {
-    message("pairwise likelihood fit. iterations:")
-    i = 1
-    tol = 10000
-    likl = LK.EGPD.idf_GLM_new(init =init, free_params = init,  scaling_breaks = scaling_breaks, censored_data = censored_data,
-                               n_cens = n_cens, durations = durations, censored = censored)
-    init_temp = init
-    while (tol > 0.05) {
-      cat(-i)
-      for (pp in c("ka", "si", "xi")) {
-        pname =  which(substr(names(init), 1, 2) == pp)
-        par.optim = optim(par=init_temp[pname], fn=LK.EGPD.idf_GLM_new, gr=NULL, free_params = init_temp, scaling_breaks = scaling_breaks, censored_data = censored_data,
-                          n_cens = n_cens, durations = durations, censored = censored, control = list(maxit = 3000), hessian = FALSE,method=optim_algo)
-
-        init_temp[pname] = par.optim$par
-        #print(c(par.optim$value, par.optim$convergence))
-      }
-      tol = likl -  par.optim$value
-      #print(tol)
-      likl = par.optim$value
-      i =i +1
-    }
-    init_ml = init_temp
-
-
-
-    par.optim =  optim(par=init_ml, fn=LK.EGPD.idf_GLM_new, gr=NULL, free_params = init_ml, scaling_breaks = scaling_breaks, censored_data = censored_data,
-                       n_cens = n_cens, durations = durations, censored = censored, control = list(maxit = 3000), hessian = FALSE,method=optim_algo)
-  } else {
+  if (!use_mle_init) {
     par.optim =  optim(par=init,fn=LK.EGPD.idf_GLM_new,gr=NULL,free_params = init, scaling_breaks = scaling_breaks,  censored_data = censored_data,
                        n_cens = n_cens, durations = durations, censored = censored, control = list(maxit = 3000), hessian = FALSE,method=optim_algo)
+  } else{
+    # maximiiwe the likelihood, trying various algortihms
+    fitted_models =  map(c("Nelder-Mead", "BFGS"), function(optim_algo){
+      map(c(T,F), function (use_mle_init){
+        if (use_mle_init) {
+          #message("pairwise likelihood fit. iterations:")
+          i = 1
+          tol = 10000
+          likl = LK.EGPD.idf_GLM_new(init =init, free_params = init,  scaling_breaks = scaling_breaks, censored_data = censored_data,
+                                     n_cens = n_cens, durations = durations, censored = censored)
+          init_temp = init
+          while (tol > 0.05) {
+            #cat(-i)
+            for (pp in c("ka", "si", "xi")) {
+              pname =  which(substr(names(init), 1, 2) == pp)
+              par.optim = optim(par=init_temp[pname], fn=LK.EGPD.idf_GLM_new, gr=NULL, free_params = init_temp, scaling_breaks = scaling_breaks, censored_data = censored_data,
+                                n_cens = n_cens, durations = durations, censored = censored, control = list(maxit = 3000), hessian = FALSE,method=optim_algo)
+
+              init_temp[pname] = par.optim$par
+              #print(c(par.optim$value, par.optim$convergence))
+            }
+            tol = likl -  par.optim$value
+            #print(tol)
+            likl = par.optim$value
+            i =i +1
+          }
+          init_ml = init_temp
+
+
+
+          par.optim =  optim(par=init_ml, fn=LK.EGPD.idf_GLM_new, gr=NULL, free_params = init_ml, scaling_breaks = scaling_breaks, censored_data = censored_data,
+                             n_cens = n_cens, durations = durations, censored = censored, control = list(maxit = 3000), hessian = FALSE,method=optim_algo)
+        } else {
+          par.optim = optim(par=init,fn=LK.EGPD.idf_GLM_new,gr=NULL,free_params = init, scaling_breaks = scaling_breaks,  censored_data = censored_data,
+                            n_cens = n_cens, durations = durations, censored = censored, control = list(maxit = 3000), hessian = FALSE,method=optim_algo)
+        }
+      })
+
+    }) %>% list_flatten
+    id_best_model= fitted_models  %>%  map_dbl(~.x$value) %>%  which.min
+    par.optim = fitted_models[[id_best_model]]
   }
+  #par.optim
   par = par.optim$par
+
   #prdictions
   kappa_par = par[which(substr(names(par), 1, 2) == "ka")]
   sigma_par = par[which(substr(names(par), 1, 2) == "si")]
