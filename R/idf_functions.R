@@ -439,8 +439,8 @@ local_fit_IDF_h_par  <- function(sample, fitting_method= "mle", left_censoring_v
 #' @param left_censoring_value a scalar or vector of \code{length(durations)} for the left censoring to be applied to data of each duration. If a scalar is given, it will be divided by \code{durations}
 #' @param init_time_step  a scalar, eg 1 or 2. The time step to start declustering the data. eg, for hourly data, if  \code{declustering =3} and  \code{init_time_step = 2}, then the 2nd timestep will be selected, and then a sequence is applied
 #' @param fitting_method either \code{"mle"} for maximum likelihood or \code{"pwm"} for probability weighted momoments. Defaults to \code{"mle"}
-#' @param use_mle_init logical, defaults  to \code{FALSE}, if yes, an iterative pairwise likelihood fitting is done, trying both \code{"Nelder-Mead" } and \code{"BFGS" } See ...
-#' @param optim_algo the \code{optim} algorithm to use when \code{use_mle_init = FALSE}. defaults to \code{"Nelder-Mead" }
+#' @param use_profile_likelihood logical, defaults  to \code{FALSE}, if yes, an iterative pairwise likelihood fitting is done, trying both \code{"Nelder-Mead" } and \code{"BFGS" } See ...
+#' @param optim_algo the \code{optim} algorithm to use when \code{use_profile_likelihood = FALSE}. defaults to \code{"Nelder-Mead" }
 #'
 #' @details
 #'   to be added
@@ -499,7 +499,7 @@ local_fit_IDF_h_par  <- function(sample, fitting_method= "mle", left_censoring_v
 #' @export
 fit_egpd_idf_data_driven <- function(station_data, durations, declustering_duration, initial_params,
                                      left_censoring_value,   fitting_method = "mle", init_time_step=1,
-                                        use_mle_init =F,  optim_algo = "Nelder-Mead"){
+                                        use_profile_likelihood =F,  optim_algo = "Nelder-Mead"){
 
   if (missing(initial_params)) {
     stop("initial_params is missing: run the egpd_idf_init function to obtain the parameters ")
@@ -640,14 +640,14 @@ fit_egpd_idf_data_driven <- function(station_data, durations, declustering_durat
   #                   n_cens = n_cens, durations = durations, censored = censored, control = list(maxit = 3000), hessian = FALSE,method="Nelder-Mead")
 
 
-  if (!use_mle_init) {
+  if (!use_profile_likelihood) {
     par.optim =  optim(par=init,fn=LK.EGPD.idf_GLM_new,gr=NULL,free_params = init, scaling_breaks = scaling_breaks,  censored_data = censored_data,
                        n_cens = n_cens, durations = durations, censored = censored, control = list(maxit = 3000), hessian = FALSE,method=optim_algo)
   } else{
     # maximiiwe the likelihood, trying various algortihms
     fitted_models =  map(c("Nelder-Mead", "BFGS"), function(optim_algo){
-      map(c(T,F), function (use_mle_init){
-        if (use_mle_init) {
+      map(c(T,F), function (use_profile_likelihood){
+        if (use_profile_likelihood) {
           #message("pairwise likelihood fit. iterations:")
           i = 1
           tol = 10000

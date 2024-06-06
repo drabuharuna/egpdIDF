@@ -145,7 +145,7 @@ trplot_egpd = function(data, kappa, sigma, xi, npy, max_T = 1000){
 #' @export
 
 plot_egpdidf_curves =function(station_data, kappa_fit, sigma_fit, xi_fit, durations, declustering_duration, npy, Tr_vec = c(2,5,10,20,50,100), init_time_step =1  ){
-
+  n_year_obs = length(station_data[,1])/(npy*24/declustering_duration[1])
   #2.0 return level
   non_ex_probs = mapply(get_non_exc_probs_idf, x = station_data, y=  declustering_duration, npy = npy*24/declustering_duration,
                         init_time_step = init_time_step,MoreArgs = list(Tr_vec = Tr_vec) )
@@ -166,7 +166,7 @@ plot_egpdidf_curves =function(station_data, kappa_fit, sigma_fit, xi_fit, durati
 
   p= ggplot()+
     geom_line(data = plot_data_idf, aes(x = as.numeric(dur),y = tr_idf, col = factor(Tr) ))+
-    geom_point(data = plot_data_idf, aes(x = as.numeric(dur),y = emp_lev, col = factor(Tr))) +
+    geom_point(data = plot_data_idf %>%  filter(Tr < n_year_obs), aes(x = as.numeric(dur),y = emp_lev, col = factor(Tr))) +
     scale_x_continuous(trans = "log10", breaks = durations)+
     scale_y_continuous(trans = "log10")+theme_bw() +
     labs(x="Duration (hours)", y ="Return level (mm)", title = "IDF Curves", col = "Return Period") +
