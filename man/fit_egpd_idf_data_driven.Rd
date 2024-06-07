@@ -12,7 +12,7 @@ fit_egpd_idf_data_driven(
   left_censoring_value,
   fitting_method = "mle",
   init_time_step = 1,
-  use_mle_init = F,
+  use_profile_likelihood = F,
   optim_algo = "Nelder-Mead"
 )
 }
@@ -31,9 +31,9 @@ fit_egpd_idf_data_driven(
 
 \item{init_time_step}{a scalar, eg 1 or 2. The time step to start declustering the data. eg, for hourly data, if  \code{declustering =3} and  \code{init_time_step = 2}, then the 2nd timestep will be selected, and then a sequence is applied}
 
-\item{use_mle_init}{logical, defaults  to \code{FALSE}, if yes, an iterative pairwise likelohoof fitting is done. See ...}
+\item{use_profile_likelihood}{logical, defaults  to \code{FALSE}, if yes, an iterative pairwise likelihood fitting is done, trying both \code{"Nelder-Mead" } and \code{"BFGS" } See ...}
 
-\item{optim_algo}{the \code{optim} algorithm to use. defaults to \code{"Nelder-Mead" }}
+\item{optim_algo}{the \code{optim} algorithm to use when \code{use_profile_likelihood = FALSE}. defaults to \code{"Nelder-Mead" }}
 }
 \value{
 # A list:
