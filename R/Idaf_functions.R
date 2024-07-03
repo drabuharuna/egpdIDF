@@ -287,7 +287,7 @@ fit_idaf_dd =  function(st_data_ad, init_param,  durations, grid_area,formula, u
   sigma_param = get_fitted_param(x_mat = cov_mat[["sigma"]], beta_vec = sigma_par, link = link_type["sigma"])   %>% get_param_df_wide
   xi_param = get_fitted_param(x_mat = cov_mat[["xi"]], beta_vec = xi_par, link = link_type["xi"])  %>% get_param_df_wide
   #xi_param[xi_param<1e-6] = 1e-6
-  xi_param = xi_param  %>% mutate(across(everything()),across(.fns = ~replace(., . < 1e-6 ,1e-6)))
+  xi_param = xi_param  %>% mutate(across(everything(), .fns = ~replace(., . < 1e-6 ,1e-6)))
   #kappa_param = cov_mat[["kappa"]] %*% kappa_par %>% as.vector %>% get_param_df_wide
   #sigma_param = cov_mat[["sigma"]]%*% sigma_par %>% as.vector  %>% get_param_df_wide
   #xi_param =  cov_mat[["xi"]] %*% xi_par %>% as.vector  %>% get_param_df_wide
