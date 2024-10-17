@@ -10,6 +10,7 @@
 #' @param left_censoring_value a scalar or vector of length(durations), defaults to \code{0}. The left censoring value to be applied to data of each duration. If a scalar is given, it will be divided (scaled) by durations. It will be ignored if  \code{auto_fit = TRUE}.
 #' @param plot logical, defaults to False, if \code{TRUE}, qqplot will be displayed, and a ggplot object will be returned.
 #' @param optim_algo the \code{optim} algorithm to use. defaults to \code{"Nelder-Mead" }
+#' @param max_xi  the maximum value of xi. defaults to \code{0.4}
 #'
 #' @details
 #'   to be added
@@ -49,7 +50,7 @@
 #'
 #' @export
 
-fit_egpd <- function(data, fitting_method = "mle", init, declustering_duration=1, init_time_step =1, left_censoring_value = 0, plot = FALSE,   optim_algo = "Nelder-Mead" ){
+fit_egpd <- function(data, fitting_method = "mle", init, declustering_duration=1, init_time_step =1, left_censoring_value = 0, plot = FALSE,   optim_algo = "Nelder-Mead", max_xi = 0.4 ){
 
   data <- data[seq(init_time_step,length(data),declustering_duration)]
   data = na.omit(data)
@@ -74,7 +75,7 @@ fit_egpd <- function(data, fitting_method = "mle", init, declustering_duration=1
       if(init[c('kappa')] > 0.05  &
          init[c('sigma')] > 0.02  &
          init[c('kappa')] <= 3 &
-         init[c('xi')] < 0.4 &
+         init[c('xi')] < max_xi &
          init[c('xi')] > 10^(-6) ){
 
         # for left censored data
@@ -145,6 +146,7 @@ fit_egpd <- function(data, fitting_method = "mle", init, declustering_duration=1
 #' then  \code{optim} will be used to find the best lower censoring values. Otherwise (that is if \code{auto_fit = FALSE}), no automatic left censoring will be called, and only the values in \code{left_censoring_value } will be used in the paralleled fitting.
 #' @param nrsme_quantile a number in percentage, or any character eg \code{nrsme_quantile = 90}, the normalized root mean square error will only be computed on excesses of the quaneile.  If a charanter, then a weighted normalized root mean square error will be used.
 #' Only used if both \code{use_r_optim = T} and  \code{auto_fit = TRUE}
+#' @param max_xi  the maximum value of xi. defaults to \code{0.4}
 #'
 #' @details
 #'   to be added
@@ -197,18 +199,18 @@ fit_egpd <- function(data, fitting_method = "mle", init, declustering_duration=1
 #' @export
 egpd_idf_init <- function(station_data, durations, declustering_duration, init_time_step = 1,
                           fitting_method = "mle", left_censoring_value = 0,  auto_fit = T, nrmse_tol = 0.1,
-                          simple_scaling = T, use_r_optim = F, nrsme_quantile = 0){
+                          simple_scaling = T, use_r_optim = F, nrsme_quantile = 0, max_xi = 0.4){
 
   # fit the data for each duration seperately
   if (use_r_optim) { # r optim function used to find the best lower_censoring; slower but find the best threshold
     station_fit <- local_fit_IDF_h_par(sample = data.frame(station_data), fitting_method= fitting_method, left_censoring_value =left_censoring_value, auto_fit = auto_fit, nrmse_tol = nrmse_tol,
                                        low_th = c(seq(0,1.2,0.1)), durations = durations, declustering_duration = declustering_duration,
-                                       init_time_step=init_time_step, q = nrsme_quantile)
+                                       init_time_step=init_time_step, q = nrsme_quantile, max_xi = max_xi)
 
   } else{ # here discrete values of lower threshold are tested, its possible to miss the best value
     station_fit <- local_fit_IDF_h(sample = data.frame(station_data), fitting_method= fitting_method, left_censoring_value =left_censoring_value, auto_fit = auto_fit, nrmse_tol = nrmse_tol,
                                    low_th = c(seq(0,1.2,0.1)), durations = durations, declustering_duration = declustering_duration,
-                                   init_time_step=init_time_step, q = nrsme_quantile)
+                                   init_time_step=init_time_step, q = nrsme_quantile, max_xi = max_xi)
 
   }
 
@@ -257,7 +259,7 @@ prepare_idf_obj <-function(fit_obj, simple_scaling = T, durations){
 
 ### For hourly resolution
 local_fit_IDF_h  <- function(sample, fitting_method= "mle", left_censoring_value = 0, auto_fit = T, nrmse_tol = 0.1, low_th = c(seq(0,1,0.1)), durations,
-                             declustering_duration, init_time_step=1, q = 0){
+                             declustering_duration, init_time_step=1, q = 0, max_xi = 0.4){
   if (length(left_censoring_value) ==  1 ){
     left_censoring_value = left_censoring_value/durations #ifelse(fitting_method== "mle", 0.5,0)
   }
@@ -278,7 +280,7 @@ local_fit_IDF_h  <- function(sample, fitting_method= "mle", left_censoring_value
     # extgp <- fit.extgp(data = data[data>0], model=1, method = fitting_method, init =  c(0.9, inits) ,
     #                    censoring=c(left_censoring_value[i],Inf), rounded = rounding_c[i], confint = F,  plots = F, R = 1)
 
-    extgp  = fit_egpd(data = data[data>0], fitting_method  = fitting_method,  left_censoring_value =left_censoring_value[i])
+    extgp  = fit_egpd(data = data[data>0], fitting_method  = fitting_method,  left_censoring_value =left_censoring_value[i], max_xi = max_xi)
 
     kappa_param[i] <- extgp$fitted[[1]][1]
     scale_param[i] <- extgp$fitted[[1]][2]
@@ -301,7 +303,7 @@ local_fit_IDF_h  <- function(sample, fitting_method= "mle", left_censoring_value
       for (r in 1:nrow(cens_thresholds)) {
         # try_fit = fit.extgp(data = data[data>0], model=1, method = fitting_method, init =  c(0.9, inits) ,
         #                     censoring=c(cens_thresholds[r,1],Inf), rounded = cens_thresholds[r,2], confint = F,  plots = F)
-        try_fit = fit_egpd(data = data[data>0], fitting_method  = fitting_method,  left_censoring_value =cens_thresholds[r,1])
+        try_fit = fit_egpd(data = data[data>0], fitting_method  = fitting_method,  left_censoring_value =cens_thresholds[r,1], max_xi = max_xi)
 
         new_params[r,] = try_fit$fitted[[1]]
 
@@ -332,13 +334,13 @@ local_fit_IDF_h  <- function(sample, fitting_method= "mle", left_censoring_value
 # Function linked to the automatic lower censoring threshold determination in the EGPD fit
 #this fucntion computes the NRMSE corresponding to a particular choice of threshold.
 # it is minimized by the optim fucntion called in the **local_fit_IDF_h_auto** function above
-auto_egpd_fit = function(data, fitting_method , inits, lower_cens, q = 0){
+auto_egpd_fit = function(data, fitting_method , inits, lower_cens, q = 0, max_xi = 0.4){
   # fit the parameters
   data = na.omit(data)
   # par.fit = fit.extgp(data = data[data>0], model=1, method = fitting_method, init =  c(0.9, inits) ,
   #                     censoring=c(lower_cens,Inf), rounded = 0, confint = F,  plots = F, R = 1)$fit[[1]]
 
-  par.fit =  fit_egpd(data = data[data>0], fitting_method  = fitting_method, init =  c(0.9, inits), left_censoring_value = lower_cens)$fitted[[1]]
+  par.fit =  fit_egpd(data = data[data>0], fitting_method  = fitting_method, init =  c(0.9, inits), left_censoring_value = lower_cens, max_xi = max_xi)$fitted[[1]]
   # rmse computation
 
   # sorted_data = sort(data[data>0], decreasing = F)
@@ -355,7 +357,7 @@ auto_egpd_fit = function(data, fitting_method , inits, lower_cens, q = 0){
 #local fit of data with intensity per hour
 # for each packge used, r optim used to fine the best lower cenosirng threholds
 local_fit_IDF_h_par  <- function(sample, fitting_method= "mle", left_censoring_value = 0, auto_fit = T, nrmse_tol = 0.05,  low_th = c(seq(0,1,0.1)),
-                                 durations, declustering_duration, init_time_step=1, q = 0){
+                                 durations, declustering_duration, init_time_step=1, q = 0, max_xi = 0.4){
   #rmse = c()
   if (length(left_censoring_value) ==  1 ){
     left_censoring_value = left_censoring_value/durations #ifelse(fitting_method== "mle", 0.5,0)
@@ -374,7 +376,7 @@ local_fit_IDF_h_par  <- function(sample, fitting_method= "mle", left_censoring_v
     lower_c_o =lower_c =left_censoring_value[i]
     # extgp <- fit.extgp(data = data[data>0], model=1, method = fitting_method, init =  c(0.9, inits) ,
     #                    censoring=c(lower_c,Inf), rounded = 0, confint = F,  plots = F, R = 1)
-    extgp  = fit_egpd(data = data[data>0], fitting_method  = fitting_method, init = c(0.9, inits), left_censoring_value =lower_c)
+    extgp  = fit_egpd(data = data[data>0], fitting_method  = fitting_method, init = c(0.9, inits), left_censoring_value =lower_c, max_xi = max_xi)
     kappa_o =  kappa = extgp$fitted[[1]][1]
     scale_o = scale =  extgp$fitted[[1]][2]
     shape_o = shape =  extgp$fitted[[1]][3]
@@ -388,12 +390,12 @@ local_fit_IDF_h_par  <- function(sample, fitting_method= "mle", left_censoring_v
     rmse_o = rmse = nrmse_idf(data ,kappa= kappa, sigma=scale, xi= shape, q = q)
     #* if autofit, then we vary the censoring thresholds and compute nrmse each time. finally we retain the params with the best fit (least nrmse)
     if (auto_fit & rmse>  nrmse_tol) {
-      result = optim(par = 0.5, fn = auto_egpd_fit, gr = NULL, data = data, fitting_method = fitting_method, q = q,
+      result = optim(par = 0.5, fn = auto_egpd_fit, gr = NULL, data = data, fitting_method = fitting_method, q = q,max_xi =max_xi,
                      inits = inits,  method = "Brent", lower = min(data[data>0]),
                      upper = quantile(data[data>0], 0.5)) #ifelse(quantile(data[data>0], 0.9)>15,15,quantile(data[data>0], 0.9) )
       # par.fit = fit.extgp(data = data[data>0], model=1, method = fitting_method, init =  c(0.9, inits) ,
       #                     censoring=c(result[[1]],Inf), rounded = 0, confint = F,  plots = F, R = 1)$fit[[1]]
-      par.fit =  fit_egpd(data = data[data>0], fitting_method  = fitting_method, init =  c(0.9, inits), left_censoring_value = result[[1]])$fitted[[1]]
+      par.fit =  fit_egpd(data = data[data>0], fitting_method  = fitting_method, init =  c(0.9, inits), left_censoring_value = result[[1]], max_xi = max_xi)$fitted[[1]]
       kappa <-  par.fit[1]
       scale <-  par.fit[2]
       shape <-  par.fit[3]
@@ -441,6 +443,7 @@ local_fit_IDF_h_par  <- function(sample, fitting_method= "mle", left_censoring_v
 #' @param fitting_method either \code{"mle"} for maximum likelihood or \code{"pwm"} for probability weighted momoments. Defaults to \code{"mle"}
 #' @param use_profile_likelihood logical, defaults  to \code{FALSE}, if yes, an iterative pairwise likelihood fitting is done, trying both \code{"Nelder-Mead" } and \code{"BFGS" } See ...
 #' @param optim_algo the \code{optim} algorithm to use when \code{use_profile_likelihood = FALSE}. defaults to \code{"Nelder-Mead" }
+#' @param max_xi  the maximum value of xi. defaults to \code{0.4}
 #'
 #' @details
 #'   to be added
@@ -499,7 +502,7 @@ local_fit_IDF_h_par  <- function(sample, fitting_method= "mle", left_censoring_v
 #' @export
 fit_egpd_idf_data_driven <- function(station_data, durations, declustering_duration, initial_params,
                                      left_censoring_value,   fitting_method = "mle", init_time_step=1,
-                                        use_profile_likelihood =F,  optim_algo = "Nelder-Mead"){
+                                        use_profile_likelihood =F,  optim_algo = "Nelder-Mead", max_xi = 0.4){
 
   if (missing(initial_params)) {
     stop("initial_params is missing: run the egpd_idf_init function to obtain the parameters ")
@@ -598,7 +601,7 @@ fit_egpd_idf_data_driven <- function(station_data, durations, declustering_durat
     # }else{
     #   vec_xi_d[vec_xi_d<1e-6] = 1e-6
     # }
-    if (all(vec_xi_d < 0) |  any(vec_xi_d > 0.4) ) {
+    if (all(vec_xi_d < 0) |  any(vec_xi_d > max_xi) ) {
       return(1e100)
     }else{
       vec_xi_d[vec_xi_d<1e-6] = 1e-6
@@ -748,7 +751,7 @@ fit_egpd_idf_data_driven <- function(station_data, durations, declustering_durat
 #' @param nrsme_quantile a number in percentage, or any character eg \code{nrsme_quantile = 90}, the normalized root mean square error will only be computed on excesses of the quaneile.  If a charanter, then a weighted normalized root mean square error will be used.
 #' Only used if both \code{use_r_optim = T} and  \code{auto_fit = TRUE}
 #' @param optim_algo the \code{optim} algtorthm to use. defaults to \code{"Nelder-Mead" }
-#'
+#' @param max_xi  the maximum value of xi. defaults to \code{0.4}
 #' @details
 #'   to be added
 #'
@@ -808,7 +811,7 @@ fit_egpd_idf_data_driven <- function(station_data, durations, declustering_durat
 fit_egpd_idf_scaling_models <- function(station_data, durations, declustering_duration, initial_params,
                                         left_censoring_value = 0,  fitting_method = "mle", simple_scaling = T, multi_regime =F,
                                         xi_constant = T, init_time_step=1, auto_fit = T,nrmse_tol =0.1,use_r_optim=F,
-                                        nrsme_quantile =0, optim_algo = "Nelder-Mead" ){
+                                        nrsme_quantile =0, optim_algo = "Nelder-Mead", max_xi = 0.4 ){
 
 
 
@@ -818,7 +821,7 @@ fit_egpd_idf_scaling_models <- function(station_data, durations, declustering_du
     initial_params = egpd_idf_init(station_data = station_data, durations = durations ,declustering_duration = declustering_duration,
                                    init_time_step = init_time_step, fitting_method = fitting_method, left_censoring_value = left_censoring_value,
                                     auto_fit = auto_fit, nrmse_tol = nrmse_tol,simple_scaling =  simple_scaling,
-                                   use_r_optim =use_r_optim, nrsme_quantile = nrsme_quantile)
+                                   use_r_optim =use_r_optim, nrsme_quantile = nrsme_quantile, max_xi = max_xi)
 
   }
   message("Fitting the IDF model")
