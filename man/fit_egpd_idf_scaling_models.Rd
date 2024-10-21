@@ -19,7 +19,8 @@ fit_egpd_idf_scaling_models(
   nrmse_tol = 0.1,
   use_r_optim = F,
   nrsme_quantile = 0,
-  optim_algo = "Nelder-Mead"
+  optim_algo = "Nelder-Mead",
+  max_xi = 0.4
 )
 }
 \arguments{
@@ -54,6 +55,8 @@ then  \code{optim} will be used to find the best lower censoring values. Otherwi
 Only used if both \code{use_r_optim = T} and  \code{auto_fit = TRUE}}
 
 \item{optim_algo}{the \code{optim} algtorthm to use. defaults to \code{"Nelder-Mead" }}
+
+\item{max_xi}{the maximum value of xi. defaults to \code{0.4}}
 }
 \value{
 # A list:

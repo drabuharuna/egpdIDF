@@ -10,7 +10,8 @@ fit_idaf_dd(
   durations,
   grid_area,
   formula,
-  use_mle_init = F
+  use_mle_init = F,
+  max_xi = 0.4
 )
 }
 \arguments{
@@ -25,6 +26,8 @@ b) a vector of size \code{length(durations)}  containing the number of observati
 \item{formula}{a list (size = 3) of  formulars, one each for each egpd parameter}
 
 \item{use_mle_init}{logical, defaults  to \code{FALSE}, if yes, an iterative pairwise likelihood fitting is done. See ...}
+
+\item{max_xi}{the maximum value of xi. defaults to \code{0.4}}
 }
 \value{
 # A list:

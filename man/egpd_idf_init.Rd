@@ -15,7 +15,8 @@ egpd_idf_init(
   nrmse_tol = 0.1,
   simple_scaling = T,
   use_r_optim = F,
-  nrsme_quantile = 0
+  nrsme_quantile = 0,
+  max_xi = 0.4
 )
 }
 \arguments{
@@ -42,6 +43,8 @@ then  \code{optim} will be used to find the best lower censoring values. Otherwi
 
 \item{nrsme_quantile}{a number in percentage, or any character eg \code{nrsme_quantile = 90}, the normalized root mean square error will only be computed on excesses of the quaneile.  If a charanter, then a weighted normalized root mean square error will be used.
 Only used if both \code{use_r_optim = T} and  \code{auto_fit = TRUE}}
+
+\item{max_xi}{the maximum value of xi. defaults to \code{0.4}}
 }
 \value{
 # A list:

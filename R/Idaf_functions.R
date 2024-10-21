@@ -10,6 +10,7 @@
 #' @param grid_area  a (vector) of aggregation areas
 #' @param formula  a list (size = 3) of  formulars, one each for each egpd parameter
 #' @param use_mle_init logical, defaults  to \code{FALSE}, if yes, an iterative pairwise likelihood fitting is done. See ...
+#' @param max_xi  the maximum value of xi. defaults to \code{0.4}
 #'
 #' @details
 #'   to be added
@@ -130,7 +131,7 @@
 
 #' @export
 
-fit_idaf_dd =  function(st_data_ad, init_param,  durations, grid_area,formula, use_mle_init = F){
+fit_idaf_dd =  function(st_data_ad, init_param,  durations, grid_area,formula, use_mle_init = F, max_xi = 0.4){
   #st_data_ad, : a list containing the data in a particular format
   #init_param, ; a df of initial paramters
   #durations, : a vector of aggregation durations
@@ -194,7 +195,7 @@ fit_idaf_dd =  function(st_data_ad, init_param,  durations, grid_area,formula, u
     vec_sigma_d = get_fitted_param(x_mat = cov_mat[["sigma"]], beta_vec = sigma_init, link = link_type["sigma"])
     vec_xi_d = get_fitted_param(x_mat = cov_mat[["xi"]], beta_vec = xi_init, link = link_type["xi"])
 
-    if (all(vec_xi_d < 0) |  any(vec_xi_d > 0.5) ) {
+    if (all(vec_xi_d < 0) |  any(vec_xi_d > max_xi) ) {
       return(1e100)
     }else{
       vec_xi_d[vec_xi_d<1e-6] = 1e-6

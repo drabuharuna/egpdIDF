@@ -13,7 +13,8 @@ fit_egpd_idf_data_driven(
   fitting_method = "mle",
   init_time_step = 1,
   use_profile_likelihood = F,
-  optim_algo = "Nelder-Mead"
+  optim_algo = "Nelder-Mead",
+  max_xi = 0.4
 )
 }
 \arguments{
@@ -34,6 +35,8 @@ fit_egpd_idf_data_driven(
 \item{use_profile_likelihood}{logical, defaults  to \code{FALSE}, if yes, an iterative pairwise likelihood fitting is done, trying both \code{"Nelder-Mead" } and \code{"BFGS" } See ...}
 
 \item{optim_algo}{the \code{optim} algorithm to use when \code{use_profile_likelihood = FALSE}. defaults to \code{"Nelder-Mead" }}
+
+\item{max_xi}{the maximum value of xi. defaults to \code{0.4}}
 }
 \value{
 # A list:

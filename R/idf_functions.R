@@ -502,7 +502,7 @@ local_fit_IDF_h_par  <- function(sample, fitting_method= "mle", left_censoring_v
 #' @export
 fit_egpd_idf_data_driven <- function(station_data, durations, declustering_duration, initial_params,
                                      left_censoring_value,   fitting_method = "mle", init_time_step=1,
-                                        use_profile_likelihood =F,  optim_algo = "Nelder-Mead", max_xi = 0.4){
+                                     use_profile_likelihood =F,  optim_algo = "Nelder-Mead", max_xi = 0.4){
 
   if (missing(initial_params)) {
     stop("initial_params is missing: run the egpd_idf_init function to obtain the parameters ")
@@ -601,7 +601,7 @@ fit_egpd_idf_data_driven <- function(station_data, durations, declustering_durat
     # }else{
     #   vec_xi_d[vec_xi_d<1e-6] = 1e-6
     # }
-    if (all(vec_xi_d < 0) |  any(vec_xi_d > max_xi) ) {
+    if (all(vec_xi_d < 0) |  vec_xi_d[durations == 24] > max_xi ) {
       return(1e100)
     }else{
       vec_xi_d[vec_xi_d<1e-6] = 1e-6
@@ -681,6 +681,8 @@ fit_egpd_idf_data_driven <- function(station_data, durations, declustering_durat
         } else {
           par.optim = optim(par=init,fn=LK.EGPD.idf_GLM_new,gr=NULL,free_params = init, scaling_breaks = scaling_breaks,  censored_data = censored_data,
                             n_cens = n_cens, durations = durations, censored = censored, control = list(maxit = 3000), hessian = FALSE,method=optim_algo)
+          # par.optim =  SCEoptim(par=init,FUN =LK.EGPD.idf_GLM_new,free_params = init, scaling_breaks = scaling_breaks,  censored_data = censored_data,
+          #                       n_cens = n_cens, durations = durations, censored = censored, control = list(maxit = 3000))
         }
       })
 
@@ -820,7 +822,7 @@ fit_egpd_idf_scaling_models <- function(station_data, durations, declustering_du
 
     initial_params = egpd_idf_init(station_data = station_data, durations = durations ,declustering_duration = declustering_duration,
                                    init_time_step = init_time_step, fitting_method = fitting_method, left_censoring_value = left_censoring_value,
-                                    auto_fit = auto_fit, nrmse_tol = nrmse_tol,simple_scaling =  simple_scaling,
+                                   auto_fit = auto_fit, nrmse_tol = nrmse_tol,simple_scaling =  simple_scaling,
                                    use_r_optim =use_r_optim, nrsme_quantile = nrsme_quantile, max_xi = max_xi)
 
   }

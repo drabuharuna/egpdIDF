@@ -12,7 +12,8 @@ fit_egpd(
   init_time_step = 1,
   left_censoring_value = 0,
   plot = FALSE,
-  optim_algo = "Nelder-Mead"
+  optim_algo = "Nelder-Mead",
+  max_xi = 0.4
 )
 }
 \arguments{
@@ -31,6 +32,8 @@ fit_egpd(
 \item{plot}{logical, defaults to False, if \code{TRUE}, qqplot will be displayed, and a ggplot object will be returned.}
 
 \item{optim_algo}{the \code{optim} algorithm to use. defaults to \code{"Nelder-Mead" }}
+
+\item{max_xi}{the maximum value of xi. defaults to \code{0.4}}
 }
 \value{
 # A list:
