@@ -1097,7 +1097,7 @@ fit_segmented = function(paramet, covar){
   lm_fit = lm(yy~xx)
 
 
-  zz = segmented(lm_fit,   control = seg.control(display = FALSE, alpha = 0.1), psi = log(6))
+  zz = segmented(lm_fit,   control = seg.control(display = FALSE, alpha = 0.2), psi = log(6))
   #breakpoint
   k = exp(zz$psi[1,2])
   #slopes of line 1 and 2
@@ -1179,20 +1179,27 @@ find_init_linear_models = function(paramet, covar, model_type= 'log_log_MR', par
     y = log(paramet)
     x =log(covar)
     fit = m4
-    try(fit <- segmented(lm(y~x),   control = seg.control(display = FALSE, alpha = 0.1), psi = (init_breakponts)), silent = T)
-    fit <- segmented(lm(y~x),   control = seg.control(display = FALSE, alpha = 0.1), psi = (init_breakponts))
-    k = exp(fit$psi[1,2])
-    #slopes of line 1 and 2
-    eta1 =   slope(fit)$x[1,1]
-    eta2 =   slope(fit)$x[2,1]
+    try(fit <- segmented(lm(y~x),   control = seg.control(display = FALSE, alpha = 0.2), psi = (init_breakponts)), silent = T)
+    #fit <- segmented(lm(y~x),   control = seg.control(display = FALSE, alpha = 0.2), psi = (init_breakponts))
 
-    if (param_name == "sigma") {
-      eta1 =  min(-0.1, slope(fit)$x[1,1])
-      eta2 =  min(-0.1, slope(fit)$x[2,1])
+    if(length(fit$coefficients)>2){ # breakpoint fitted
+      k = exp(fit$psi[1,2])
+      #slopes of line 1 and 2
+      eta1 =   slope(fit)$x[1,1]
+      eta2 =   slope(fit)$x[2,1]
+
+      if (param_name == "sigma") {
+        eta1 =  min(-0.1, slope(fit)$x[1,1])
+        eta2 =  min(-0.1, slope(fit)$x[2,1])
+      }
+      sigma01 = (intercept(fit)$x[1,1])
+    } else{ # no break point
+      k = 1 # this ensires that sigmoa01 = sigma02
+      eta1 = fit$coefficients[2]
+      sigma01 = fit$coefficients[1]
+      eta2 = eta1
     }
-    #intercept of line 1 and 2
-    #sigma02 = sigma01*k^-(eta1-eta2)
-    sigma01 = (intercept(fit)$x[1,1])
+
     #sigma02 = exp(intercept(fit)$x[2,1])
     result = c(sigma01, eta1, eta2,  k)
     names(result) = paste0(param_name,  c('01', '_eta1', '_eta2',  '_k'))
@@ -1201,8 +1208,8 @@ find_init_linear_models = function(paramet, covar, model_type= 'log_log_MR', par
     y = paramet
     x =log(covar)
     fit = m4
-    try(fit <- segmented(lm(y~x),   control = seg.control(display = FALSE, alpha = 0.1), psi = (init_breakponts)), silent = T)
-    fit <- segmented(lm(y~x),   control = seg.control(display = FALSE, alpha = 0.1), psi = (init_breakponts))
+    try(fit <- segmented(lm(y~x),   control = seg.control(display = FALSE, alpha = 0.2), psi = (init_breakponts)), silent = T)
+    fit <- segmented(lm(y~x),   control = seg.control(display = FALSE, alpha = 0.2), psi = (init_breakponts))
     k = exp(fit$psi[1,2])
     #slopes of line 1 and 2
     eta1 =   slope(fit)$x[1,1]
@@ -1241,21 +1248,21 @@ fit_linear_model = function(paramet, covar, model_type){
     y = (paramet)
     x = (covar)
     fit = m4
-    try(fit <- segmented(lm(y~x),   control = seg.control(display = FALSE, alpha = 0.1), psi = exp(init_breakponts)), silent = T)
+    try(fit <- segmented(lm(y~x),   control = seg.control(display = FALSE, alpha = 0.2), psi = exp(init_breakponts)), silent = T)
     predicted = (fitted.values(fit))
   }else if (model_type == 'log_log_MR'){
     m4 = lm(log(paramet)~log(covar))
     y = log(paramet)
     x =log(covar)
     fit = m4
-    try(fit <- segmented(lm(y~x),   control = seg.control(display = FALSE, alpha = 0.1), psi = (init_breakponts)), silent = T)
+    try(fit <- segmented(lm(y~x),   control = seg.control(display = FALSE, alpha = 0.2), psi = (init_breakponts)), silent = T)
     predicted = exp(fitted.values(fit))
   }  else if (model_type == 'linear_log_MR'){
     m4 = lm((paramet)~log(covar))
     y = (paramet)
     x =log(covar)
     fit = m4
-    try(fit <- segmented(lm(y~x),   control = seg.control(display = FALSE, alpha = 0.1), psi = (init_breakponts)), silent = T)
+    try(fit <- segmented(lm(y~x),   control = seg.control(display = FALSE, alpha = 0.2), psi = (init_breakponts)), silent = T)
     predicted = (fitted.values(fit))
   }
   return(predicted)

@@ -26,6 +26,8 @@
 #' @return # A data frame: with \code{ncol = length(durations)}. Each containing the aggregated time series
 #' @export
 aggregate_data = function(sample_data, st_code, durations){
+  if(!(st_code %in% colnames(sample_data) ))
+    stop(" 'st_code' is not a column in 'sample_data', please rename the target column to 'st_code' ")
 
   list_df = lapply(st_code, function(x) data.frame(date=sample_data$date,RR=sample_data[, x]))
   names(list_df) = st_code
